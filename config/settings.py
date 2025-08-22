@@ -20,11 +20,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'rest_framework',
+    "rest_framework_simplejwt",
+    "django_filters",
+
+    "drf_spectacular",
     'drf_yasg',
 
     'netmodel',
+    'users'
 ]
 
 MIDDLEWARE = [
@@ -91,6 +95,8 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# User
+AUTH_USER_MODEL = "users.User"
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
@@ -102,7 +108,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # AUTH_USER_MODEL = 'YourAppName.YourClassName'
 # AUTH_USER_MODEL = 'users.User'
 
-#Filters и Настройки JWT-токенов
+# Filters и Настройки JWT-токенов
 REST_FRAMEWORK = {
     # Use Django's standard 'django.contrib.auth' permissions,
     # or allow read-only access for unauthenticated users.

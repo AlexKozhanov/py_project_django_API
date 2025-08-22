@@ -1,103 +1,79 @@
-# Generic
-from rest_framework.generics import (
-    ListAPIView,
-    CreateAPIView,
-    RetrieveAPIView,
-    UpdateAPIView,
-    DestroyAPIView)
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets
 # Models
-from netmodel.models import NetworkModel
-from netmodel.serializers import NetworkModelSerializer
-
+from netmodel.models import NetworkModel, Products
+from netmodel.serializers import (
+    ProductSerializer,
+    NetworkModelCreateSerializer,
+    NetworkModelSerializer,
+    NetworkModelBaseSerializer)
 # Не знаю из какой группы
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+from netmodel.filters import NetworkModelFilter
 # Swagger
-from drf_yasg import openapi
+from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
 
+from users.permissions import IsRelatedPerson
 
-# Generic
-class NetworkModelListAPIView(ListAPIView):
+
+@method_decorator(
+    name="list",
+    decorator=swagger_auto_schema(
+        operation_description="Контроллер для получения списка"
+    ),
+)
+@method_decorator(
+    name="retrieve",
+    decorator=swagger_auto_schema(
+        operation_description="Контроллер для получения конкретной"
+    ),
+)
+@method_decorator(
+    name="create",
+    decorator=swagger_auto_schema(
+        operation_description="Контроллер для создания"
+    ),
+)
+@method_decorator(
+    name="update",
+    decorator=swagger_auto_schema(
+        operation_description="Контроллер для обновления информации"
+    ),
+)
+@method_decorator(
+    name="partial_update",
+    decorator=swagger_auto_schema(
+        operation_description="Контроллер для частичного изменения информации"
+    ),
+)
+@method_decorator(
+    name="destroy",
+    decorator=swagger_auto_schema(
+        operation_description="Контроллер для удаления"
+    ),
+)
+class NetworkModelViewSet(viewsets.ModelViewSet):
+
     queryset = NetworkModel.objects.all()
-    serializer_class = NetworkModelSerializer
-    permission_classes = (IsAuthenticated,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = NetworkModelFilter
+
+    def get_permissions(self):
+        if self.action != "list":
+            self.permission_classes = (IsRelatedPerson,)
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            self.serializer_class = NetworkModelCreateSerializer
+        elif self.action == "list":
+            self.serializer_class = NetworkModelBaseSerializer
+        else:
+            self.serializer_class = NetworkModelSerializer
+        return super().get_serializer_class()
 
 
-class NetworkModelCreateAPIView(CreateAPIView):
-    queryset = NetworkModel.objects.all()
-    serializer_class = NetworkModelSerializer
-    permission_classes = (
-        IsAuthenticated,
-        ~IsModer,
-    )
+class ProductViewSet(viewsets.ModelViewSet):
 
-    @swagger_auto_schema(
-        operation_summary="Создание урока",
-        operation_description="Создание нового урока. Доступно только Автору урока (не из группы moder).",
-        tags=["Уроки"],
-        responses={201: NetworkModelSerializer, 403: "Forbidden (если пользователь — moder)", },
-    )
-    def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
-
-
-class NetworkModelRetrieveAPIView(RetrieveAPIView):
-    queryset = NetworkModel.objects.all()
-    serializer_class = NetworkModelSerializer
-    permission_classes = (
-        IsAuthenticated,
-        IsModer | IsOwner,
-    )
-
-    @swagger_auto_schema(
-        operation_summary="Детали урока",
-        operation_description="Возвращает детали урока. Доступно Автору урока из группы moder.",
-        tags=["Уроки"],
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-
-class NetworkModelUpdateAPIView(UpdateAPIView):
-    queryset = NetworkModel.objects.all()
-    serializer_class = NetworkModelSerializer
-    permission_classes = (
-        IsAuthenticated,
-        IsModer | IsOwner,
-    )
-
-    @swagger_auto_schema(
-        operation_summary="Обновление урока",
-        operation_description="Обновление урока. Доступно Автору урока из группы moder.",
-        tags=["Уроки"],
-    )
-    def patch(self, request, *args, **kwargs):
-        return super().patch(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        operation_summary="Полное обновление урока",
-        operation_description="Полное обновление урока. Доступно Автору урока из группы moder.",
-        tags=["Уроки"],
-    )
-    def put(self, request, *args, **kwargs):
-        return super().put(request, *args, **kwargs)
-
-
-class NetworkModelDestroyAPIView(DestroyAPIView):
-    queryset = NetworkModel.objects.all()
-    serializer_class = NetworkModelSerializer
-    permission_classes = (
-        IsAuthenticated,
-        IsOwner | ~IsModer,
-    )
-
-    @swagger_auto_schema(
-        operation_summary="Удаление урока",
-        operation_description="Удаление урока. Доступно только Автору урока (не из группы moder).",
-        tags=["Уроки"],
-        responses={204: "No Content", 403: "Forbidden (если пользователь — moder)"},
-    )
-    def delete(self, request, *args, **kwargs):
-        return super().delete(request, *args, **kwargs)
+    queryset = Products.objects.all()
+    serializer_class = ProductSerializer

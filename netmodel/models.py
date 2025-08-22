@@ -1,5 +1,5 @@
-from django.conf import settings
 from django.db import models
+from config.settings import AUTH_USER_MODEL
 
 NULLABLE = {"blank": True, "null": True}
 
@@ -20,17 +20,12 @@ class NetworkModel(models.Model):
     name = models.CharField(max_length=100, **NULLABLE, verbose_name='Название модели сети',
                             help_text='Введите название модели сети')
 
-    lvl_zero = "0"
-    lvl_one = "1"
-    lvl_two = "2"
-    HIERARCHY_LEVEL = [(lvl_zero, "0"), (lvl_one, "1"), (lvl_two, "2"), ]
-
-    hierarchy_level = models.CharField(max_length=50, choices=HIERARCHY_LEVEL, default=lvl_zero,
-                                       verbose_name="Иерархический уровень (определяется программой)", )
+    hierarchy_level = models.PositiveIntegerField(default=0,
+                                                  verbose_name="Иерархический уровень (определяется программой)", )
     supplier = models.ForeignKey('self', on_delete=models.SET_NULL, **NULLABLE, max_length=100,
-                                 verbose_name='Поставщик')
+                                 related_name="suppliers", verbose_name='Поставщик')
 
-    contact_email = models.CharField(max_length=100, **NULLABLE, verbose_name='email', help_text='Введите email')
+    contact_email = models.EmailField(**NULLABLE, verbose_name="email", help_text="Укажите email")
     contact_country = models.CharField(max_length=100, **NULLABLE, verbose_name='Страна',
                                        help_text='Введите название страны')
     contact_city = models.CharField(max_length=100, **NULLABLE, verbose_name='Город',
@@ -43,6 +38,16 @@ class NetworkModel(models.Model):
     arrears = models.DecimalField(max_digits=12, decimal_places=2, **NULLABLE, verbose_name='Задолженность',
                                   help_text='Введите Задолженность')
     creation_time = models.DateField(auto_now=False, auto_now_add=True, verbose_name='Дата создания')
+    related_person = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="netmodel",
+                                       verbose_name="связанное с организацией лицо",
+                                       help_text="Автоматически заполняется данными текущего пользователя", **NULLABLE)
+
+    def save(self, *args, **kwargs):
+        if self.type == "завод":
+            self.hierarchy_level = 0
+        elif self.supplier:
+            self.hierarchy = self.supplier.hierarchy + 1
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Модель'
@@ -62,7 +67,7 @@ class Products(models.Model):
     product_name = models.CharField(max_length=100, **NULLABLE, verbose_name='Название продукта',
                                     help_text='Введите название продукта')
     product_model = models.CharField(max_length=100, **NULLABLE, verbose_name='Модель продукта',
-                                    help_text='Введите модель продукта')
+                                     help_text='Введите модель продукта')
     product_date = models.DateField(auto_now=False, auto_now_add=False, **NULLABLE,
                                     verbose_name='Дата выхода продукта на рынок')
 
